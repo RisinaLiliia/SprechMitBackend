@@ -17,7 +17,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://sprech-mit-front.vercel.app/",
-  "https://backend-tasteorama.onrender.com",
+  "https://sprechmitbackend.onrender.com",
 ];
 
 app.use(
@@ -32,7 +32,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  }),
+  })
 );
 
 export default async function setupServer() {
@@ -46,12 +46,13 @@ export default async function setupServer() {
         transport: {
           target: "pino-pretty",
         },
-      }),
+      })
     );
   }
 
   app.use("/api-docs", swaggerDocs());
   app.use("/uploads", express.static(UPLOAD_DIR));
+
   app.use("/api/auth", authRouter);
   app.use("/api/users", userRoutes);
 
