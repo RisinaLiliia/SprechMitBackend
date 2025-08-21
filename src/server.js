@@ -8,9 +8,9 @@ import errorHandler from "./middlewares/errorHandler.js";
 import authRouter from "./routers/authRouter.js";
 import userRoutes from "./routers/userRoutes.js";
 
-import { UPLOAD_DIR } from "./constants/index.js";
+// import { UPLOAD_DIR } from "./constants/index.js";
 
-import { swaggerDocs } from "./middlewares/swaggerDocs.js";
+// import { swaggerDocs } from "./middlewares/swaggerDocs.js";
 
 const app = express();
 
@@ -41,36 +41,20 @@ export default async function setupServer() {
   app.use(express.urlencoded({ extended: true }));
 
   if (process.env.NODE_ENV !== "development") {
-    app.use(
-      pino({
-        transport: {
-          target: "pino-pretty",
-        },
-      })
-    );
+    app.use(pino());
   }
-
-  app.use("/api-docs", swaggerDocs());
-  app.use("/uploads", express.static(UPLOAD_DIR));
 
   app.use("/api/auth", authRouter);
   app.use("/api/users", userRoutes);
 
-  app.use(notFoundHandler);
   app.use(errorHandler);
+  app.use(notFoundHandler);
 
-  try {
-    const PORT = process.env.PORT || 3030;
-    await initMongoConnection();
+  const PORT = process.env.PORT || 3000;
 
-    app.listen(PORT, (error) => {
-      if (error) {
-        throw error;
-      }
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 
-      console.log(`Server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.log(error);
-  }
+  await initMongoConnection();
 }

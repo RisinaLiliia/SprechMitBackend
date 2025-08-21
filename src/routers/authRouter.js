@@ -18,13 +18,13 @@ const router = Router();
 router.post(
   "/register",
   validateBody(registerUserSchema),
-  ctrlWrapper(registerUserController),
+  ctrlWrapper(registerUserController)
 );
 
 router.post(
   "/login",
   validateBody(loginUserSchema),
-  ctrlWrapper(loginUserController),
+  ctrlWrapper(loginUserController)
 );
 
 router.post("/logout", authenticate, ctrlWrapper(logoutUserController));
@@ -32,7 +32,7 @@ router.post("/logout", authenticate, ctrlWrapper(logoutUserController));
 router.post(
   "/refresh",
   authenticate,
-  ctrlWrapper(refreshUserSessionController),
+  ctrlWrapper(refreshUserSessionController)
 );
 
 export default router;
