@@ -8,15 +8,11 @@ import errorHandler from "./middlewares/errorHandler.js";
 import authRouter from "./routers/authRouter.js";
 import userRoutes from "./routers/userRoutes.js";
 
-// import { UPLOAD_DIR } from "./constants/index.js";
-
-// import { swaggerDocs } from "./middlewares/swaggerDocs.js";
-
 const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://sprech-mit-front.vercel.app/",
+  "https://sprech-mit-front.vercel.app",
   "https://sprechmitbackend.onrender.com",
 ];
 
