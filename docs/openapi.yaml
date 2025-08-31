@@ -1,0 +1,41 @@
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: Contacts App
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  description: This is a documentation of Contacts App
+
+tags:
+  - name: SprechMit
+    description: Operation with contacts
+  - name: Auth
+    description: Auth operations
+
+servers:
+  - url: http://127.0.0.1:3000
+  - url: https://sprechmitbackend.onrender.com
+
+paths:
+  /auth/register:
+    post:
+      $ref: "../swagger/paths/auth/register/post.yaml"
+  /auth/login:
+    post:
+      $ref: "../swagger/paths/auth/login/post.yaml"
+  /auth/logout:
+    post:
+      $ref: "../swagger/paths/auth/logout/post.yaml"
+  /auth/refresh:
+    post:
+      $ref: "../swagger/paths/auth/refresh/post.yaml"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+security:
+  - bearerAuth: []

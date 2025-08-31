@@ -7,8 +7,13 @@ import notFoundHandler from "./middlewares/notFoundHandler.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import authRouter from "./routers/authRouter.js";
 import userRoutes from "./routers/userRoutes.js";
+import { UPLOAD_DIR } from "../src/constants/index.js";
+
+import { swaggerDocs } from "./middlewares/swaggerDocs.js";
 
 const app = express();
+app.use("/uploads", express.static(UPLOAD_DIR));
+app.use("/api-docs", swaggerDocs());
 
 const allowedOrigins = [
   "http://localhost:5173",

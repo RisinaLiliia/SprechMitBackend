@@ -4,9 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src/**/*.js",
     "start": "node ./src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "build": "npm run build-docs",
+    "build-docs": "redocly bundle docs/openapi.yaml --ext json -o docs/swagger.json",
+    "preview-docs": "redocly preview-docs",
+    "serve-docs": "npx serve docs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
@@ -33,11 +38,12 @@
     "react-spinners": "^0.17.0",
     "react-tabs": "^6.1.0",
     "react-toastify": "^11.0.5",
+    "swagger-ui-express": "^5.0.1",
     "yup": "^1.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
-    "@redocly/cli": "^2.0.6",
+    "@redocly/cli": "^2.0.8",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react-swc": "^3.10.2",
@@ -46,6 +52,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
+    "serve": "^14.2.4",
     "vite": "^7.0.2",
     "vite-plugin-svgr": "^4.3.0"
   }
