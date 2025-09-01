@@ -1,0 +1,33 @@
+tags:
+  - Users
+summary: Change password for current authenticated user
+operationId: updatePassword
+security:
+  - bearerAuth: []
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        required:
+          - currentPassword
+          - newPassword
+        properties:
+          currentPassword:
+            type: string
+            example: oldpassword123
+          newPassword:
+            type: string
+            example: newpassword456
+responses:
+  "200":
+    description: Password updated successfully
+  "400":
+    description: Bad request (e.g., wrong current password)
+  "401":
+    $ref: "../../components/responses/401.yaml"
+  "404":
+    $ref: "../../components/responses/404.yaml"
+  "500":
+    $ref: "../../components/responses/500.yaml"

@@ -1,0 +1,49 @@
+tags:
+  - Users
+summary: Update current authenticated user
+operationId: updateCurrentUser
+security:
+  - bearerAuth: []
+requestBody:
+  required: true
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          name:
+            type: string
+            example: Max Mustermann
+          avatarUrl:
+            type: string
+            example: https://example.com/avatar.png
+          languageLevel:
+            type: string
+            enum: [A1, A2, B1, B2, C1, C2]
+            example: B2
+responses:
+  "200":
+    description: User updated successfully
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - status
+            - message
+            - data
+          properties:
+            status:
+              type: integer
+              example: 200
+            message:
+              type: string
+              example: User updated successfully
+            data:
+              $ref: "../../components/schemas/currentUser.yaml"
+  "401":
+    $ref: "../../components/responses/401.yaml"
+  "404":
+    $ref: "../../components/responses/404.yaml"
+  "500":
+    $ref: "../../components/responses/500.yaml"
