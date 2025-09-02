@@ -1,13 +1,13 @@
-import express from "express";
+import { Router } from "express";
+import ctrlWrapper from "../utils/ctrlWrapper.js";
+import { authenticate } from "../middlewares/authenticate.js";
 import {
   getCurrentUser,
   updateCurrentUser,
   updatePassword,
 } from "../controllers/userController.js";
-import { authenticate } from "../middlewares/authenticate.js";
-import ctrlWrapper from "../utils/ctrlWrapper.js";
 
-const router = express.Router();
+const router = Router();
 
 router.get("/", authenticate, ctrlWrapper(getCurrentUser));
 router.put("/", authenticate, ctrlWrapper(updateCurrentUser));

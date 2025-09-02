@@ -1,47 +1,37 @@
 import createHttpError from "http-errors";
-
+import jwt from "jsonwebtoken";
 import { SessionsCollection } from "../models/sessionModel.js";
 import { UsersCollection } from "../models/userModel.js";
+import { getEnvVar } from "../utils/getEnvVar.js";
+
+const JWT_SECRET = getEnvVar("JWT_SECRET");
 
 export const authenticate = async (req, res, next) => {
   const authHeader = req.get("Authorization");
+  if (!authHeader)
+    return next(createHttpError(401, "Authorization header is missing"));
 
-  if (!authHeader) {
-    next(createHttpError(401, "Please provide Authorization header"));
-    return;
-  }
-
-  const bearer = authHeader.split(" ")[0];
-  const token = authHeader.split(" ")[1];
-
+  const [bearer, token] = authHeader.split(" ");
   if (bearer !== "Bearer" || !token) {
-    next(createHttpError(401, "Auth header should be of type Bearer"));
-    return;
+    return next(createHttpError(401, "Auth header must be of type Bearer"));
   }
 
-  const session = await SessionsCollection.findOne({ accessToken: token });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
 
-  if (!session) {
-    next(createHttpError(401, "Session not found"));
-    return;
+    const session = await SessionsCollection.findOne({ accessToken: token });
+    if (!session) return next(createHttpError(401, "Session not found"));
+
+    if (new Date() > new Date(session.accessTokenValidUntil)) {
+      return next(createHttpError(401, "Access token expired"));
+    }
+
+    const user = await UsersCollection.findById(payload.userId);
+    if (!user) return next(createHttpError(401, "User not found"));
+
+    req.user = user;
+    next();
+  } catch {
+    next(createHttpError(401, "Invalid token"));
   }
-
-  const isAccessTokenExpired =
-    new Date() > new Date(session.accessTokenValidUntil);
-
-  if (isAccessTokenExpired) {
-    next(createHttpError(401, "Access token expired"));
-    return;
-  }
-
-  const user = await UsersCollection.findById(session.userId);
-
-  if (!user) {
-    next(createHttpError(401));
-    return;
-  }
-
-  req.user = user;
-
-  next();
 };

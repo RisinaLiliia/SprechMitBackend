@@ -1,93 +1,92 @@
-import bcrypt from "bcrypt";
 import createHttpError from "http-errors";
+import jwt from "jsonwebtoken";
 import { UsersCollection } from "../models/userModel.js";
-import { generateToken } from "../utils/tokens.js";
-import { createSession } from "../utils/createSession.js";
 import { SessionsCollection } from "../models/sessionModel.js";
+import { createOrReplaceSession } from "./sessionServices.js";
+import { getEnvVar } from "../utils/getEnvVar.js";
 
-export const registerUser = async (payload) => {
-  const existingUser = await UsersCollection.findOne({ email: payload.email });
+const JWT_SECRET = getEnvVar("JWT_SECRET");
+const ACCESS_TOKEN_EXPIRES = "15m";
+const REFRESH_TOKEN_EXPIRES = "1d";
 
-  if (existingUser) {
-    throw createHttpError(409, "Email in use");
+function generateAccessToken(userId) {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES });
+}
+
+function generateRefreshToken(userId) {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRES });
+}
+
+export async function registerUser({
+  name,
+  email,
+  password,
+  role = "student",
+  privacyPolicyAccepted,
+}) {
+  if (!privacyPolicyAccepted) {
+    throw createHttpError.BadRequest("Privacy policy must be accepted");
   }
 
-  const hashedPassword = await bcrypt.hash(payload.password, 10);
-  const accessToken = generateToken();
-  const refreshToken = generateToken();
+  const existingUser = await UsersCollection.findOne({ email });
+  if (existingUser) throw createHttpError.Conflict("Email in use");
 
   const newUser = await UsersCollection.create({
-    ...payload,
-    password: hashedPassword,
+    name,
+    email,
+    password,
+    role,
     privacyPolicyAcceptedAt: new Date(),
-    accessToken,
   });
 
-  await createSession(newUser._id, accessToken, refreshToken);
+  const accessToken = generateAccessToken(newUser._id);
+  const refreshToken = generateRefreshToken(newUser._id);
 
-  return {
-    user: newUser,
-    // session: {
-    //   accessToken,
-    //   refreshToken,
-    // },
-  };
-};
-export const loginUser = async ({ email, password }) => {
-  const user = await UsersCollection.findOne({ email });
+  await createOrReplaceSession(newUser._id, accessToken, refreshToken);
 
-  if (!user) {
-    throw createHttpError.Unauthorized("Email or password is incorrect");
+  return { user: newUser.toJSON(), accessToken, refreshToken };
+}
+
+export async function loginUser({ email, password }) {
+  const user = await UsersCollection.findOne({ email }).select("+password");
+  if (!user || !(await user.isPasswordValid(password))) {
+    throw createHttpError.Unauthorized("Invalid email or password");
   }
 
-  const isPasswordCorrect = await bcrypt.compare(password, user.password);
-  if (!isPasswordCorrect) {
-    throw createHttpError.Unauthorized("Email or password is incorrect");
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+
+  await createOrReplaceSession(user._id, accessToken, refreshToken);
+
+  return { user: user.toJSON(), accessToken, refreshToken };
+}
+
+export async function logoutUser(userId) {
+  await SessionsCollection.deleteOne({ userId });
+  return { message: "Logged out successfully" };
+}
+
+export async function refreshTokens(refreshToken) {
+  try {
+    const decoded = jwt.verify(refreshToken, JWT_SECRET);
+
+    const session = await SessionsCollection.findOne({ refreshToken });
+    if (!session) throw createHttpError.Unauthorized("Invalid session");
+
+    if (new Date() > new Date(session.refreshTokenValidUntil)) {
+      throw createHttpError.Unauthorized("Refresh token expired");
+    }
+
+    const user = await UsersCollection.findById(decoded.userId);
+    if (!user) throw createHttpError.Unauthorized("User not found");
+
+    const newAccessToken = generateAccessToken(user._id);
+    const newRefreshToken = generateRefreshToken(user._id);
+
+    await createOrReplaceSession(user._id, newAccessToken, newRefreshToken);
+
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+  } catch {
+    throw createHttpError.Unauthorized("Invalid or expired refresh token");
   }
-
-  const accessToken = generateToken();
-  const refreshToken = generateToken();
-
-  const session = await createSession(user._id, accessToken, refreshToken);
-
-  return {
-    accessToken,
-    refreshToken,
-    _id: session._id,
-  };
-};
-
-export const refreshUsersSession = async ({ sessionId, refreshToken }) => {
-  const session = await SessionsCollection.findOne({
-    _id: sessionId,
-    refreshToken,
-  });
-
-  if (!session) {
-    throw createHttpError(401, "Session not found");
-  }
-
-  const isSessionTokenExpired =
-    new Date() > new Date(session.refreshTokenValidUntil);
-
-  if (isSessionTokenExpired) {
-    throw createHttpError(401, "Session token expired");
-  }
-
-  const accessToken = generateToken();
-  const newRefreshToken = generateToken();
-
-  await SessionsCollection.deleteOne({ _id: sessionId, refreshToken });
-
-  const newSession = await createSession(
-    session.userId,
-    accessToken,
-    newRefreshToken,
-  );
-
-  return newSession;
-};
-
-export const logoutUser = async (sessionId) => {
-  await SessionsCollection.deleteOne({ _id: sessionId });
-};
+}

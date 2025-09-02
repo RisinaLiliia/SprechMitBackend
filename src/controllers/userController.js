@@ -1,6 +1,6 @@
-import { UsersCollection } from "../models/userModel.js";
 import createHttpError from "http-errors";
 import bcrypt from "bcrypt";
+import { UsersCollection } from "../models/userModel.js";
 
 export const getCurrentUser = async (req, res, next) => {
   try {
@@ -11,11 +11,7 @@ export const getCurrentUser = async (req, res, next) => {
     );
     if (!user) throw createHttpError(404, "User not found");
 
-    res.status(200).json({
-      status: 200,
-      message: "User info retrieved successfully",
-      data: user,
-    });
+    res.status(200).json({ status: 200, message: "User info", data: user });
   } catch (err) {
     next(err);
   }
@@ -27,10 +23,8 @@ export const updateCurrentUser = async (req, res, next) => {
 
     const allowedFields = ["name", "avatarUrl", "languageLevel", "progress"];
     const updates = {};
-
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) updates[field] = req.body[field];
-    });
+    for (const f of allowedFields)
+      if (req.body[f] !== undefined) updates[f] = req.body[f];
 
     const updatedUser = await UsersCollection.findByIdAndUpdate(
       req.user._id,
@@ -40,11 +34,9 @@ export const updateCurrentUser = async (req, res, next) => {
 
     if (!updatedUser) throw createHttpError(404, "User not found");
 
-    res.status(200).json({
-      status: 200,
-      message: "User updated successfully",
-      data: updatedUser,
-    });
+    res
+      .status(200)
+      .json({ status: 200, message: "User updated", data: updatedUser });
   } catch (err) {
     next(err);
   }
@@ -59,7 +51,9 @@ export const updatePassword = async (req, res, next) => {
       throw createHttpError(400, "Current and new password are required");
     }
 
-    const user = await UsersCollection.findById(req.user._id);
+    const user = await UsersCollection.findById(req.user._id).select(
+      "+password"
+    );
     if (!user) throw createHttpError(404, "User not found");
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
@@ -68,10 +62,7 @@ export const updatePassword = async (req, res, next) => {
     user.password = newPassword;
     await user.save();
 
-    res.status(200).json({
-      status: 200,
-      message: "Password updated successfully",
-    });
+    res.status(200).json({ status: 200, message: "Password updated" });
   } catch (err) {
     next(err);
   }

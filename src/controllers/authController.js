@@ -1,82 +1,86 @@
+import createHttpError from "http-errors";
 import {
   registerUser,
   loginUser,
   logoutUser,
-  refreshUsersSession,
+  refreshTokens,
 } from "../services/authServices.js";
 
-import createHttpError from "http-errors";
+const setCookies = (res, accessToken, refreshToken) => {
+  const isProd = process.env.NODE_ENV === "production";
 
-const setupSession = (res, session) => {
-  res.cookie("refreshToken", session.refreshToken, {
+  res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    expiresIn: session.refreshTokenValidUntil,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
+    maxAge: 24 * 60 * 60 * 1000,
+    path: "/",
   });
-  res.cookie("sessionId", session._id.toString(), {
+
+  res.cookie("accessToken", accessToken, {
     httpOnly: true,
-    expiresIn: session.refreshTokenValidUntil,
+    sameSite: isProd ? "none" : "lax",
+    secure: isProd,
+    maxAge: 15 * 60 * 1000,
+    path: "/",
   });
 };
 
-export const registerUserController = async (req, res) => {
-  await registerUser(req.body);
-  const session = await loginUser(req.body);
-
-  setupSession(res, session);
-  res.status(201).json({
-    status: 201,
-    message: `User created successfully`,
-    data: {
-      accessToken: session.accessToken,
-      expiresIn: session.accessTokenValidUntil,
-    },
-  });
-};
-
-export const loginUserController = async (req, res) => {
-  const session = await loginUser(req.body);
-
-  setupSession(res, session);
-
-  res.json({
-    status: 200,
-    message: "Login successfully",
-    data: {
-      accessToken: session.accessToken,
-      expiresIn: session.accessTokenValidUntil,
-    },
-  });
-};
-
-export const logoutUserController = async (req, res) => {
-  const { sessionId } = req.cookies;
-
-  if (sessionId) {
-    await logoutUser(sessionId);
+export const registerUserController = async (req, res, next) => {
+  try {
+    const { user, accessToken, refreshToken } = await registerUser(req.body);
+    setCookies(res, accessToken, refreshToken);
+    res
+      .status(201)
+      .json({ status: 201, message: "User registered", data: { user } });
+  } catch (err) {
+    if (err.status === 409)
+      return next(createHttpError.Conflict("Email already in use"));
+    next(err);
   }
-
-  res.clearCookie("sessionId");
-  res.clearCookie("refreshToken");
-  res.status(204).send();
 };
 
-export const refreshUserSessionController = async (req, res) => {
-  const { sessionId, refreshToken } = req.cookies;
-
-  if (!sessionId || !refreshToken) {
-    throw createHttpError(401, "Missing session or refresh token cookies");
+export const loginUserController = async (req, res, next) => {
+  try {
+    const { user, accessToken, refreshToken } = await loginUser(req.body);
+    setCookies(res, accessToken, refreshToken);
+    res
+      .status(200)
+      .json({ status: 200, message: "Login successful", data: { user } });
+  } catch (err) {
+    if (err.status === 401)
+      return next(createHttpError.Unauthorized("Invalid email or password"));
+    next(err);
   }
+};
 
-  const session = await refreshUsersSession({ sessionId, refreshToken });
+export const logoutUserController = async (req, res, next) => {
+  try {
+    const { user } = req;
+    if (!user) throw createHttpError.Unauthorized("User not authenticated");
 
-  setupSession(res, session);
+    await logoutUser(user._id);
 
-  res.json({
-    status: 200,
-    message: "Successfully refreshed a session!",
-    data: {
-      accessToken: session.accessToken,
-      expiresIn: session.accessTokenValidUntil,
-    },
-  });
+    res.clearCookie("refreshToken");
+    res.clearCookie("accessToken");
+
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const refreshUserSessionController = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.cookies;
+    if (!refreshToken)
+      throw createHttpError.Unauthorized("Missing refresh token");
+
+    const tokens = await refreshTokens(refreshToken);
+    setCookies(res, tokens.accessToken, tokens.refreshToken);
+
+    res.status(200).json({ status: 200, message: "Tokens refreshed" });
+  } catch (err) {
+    next(err);
+  }
 };

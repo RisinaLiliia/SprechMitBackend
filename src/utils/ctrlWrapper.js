@@ -3,7 +3,7 @@ export default function ctrlWrapper(controller) {
     try {
       await controller(req, res, next);
     } catch (error) {
-      console.log("Catch error:", error);
+      console.error("Controller error:", error);
       next(error);
     }
   };

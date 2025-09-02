@@ -5,14 +5,14 @@ export function validateBody(schema) {
     try {
       await schema.validateAsync(req.body, {
         abortEarly: false,
+        stripUnknown: true,
       });
-
       next();
     } catch (error) {
-      console.log(error);
-      const errors = error.details.map((detail) => detail.message);
-
-      next(createHttpError.BadRequest(errors));
+      const details = error.details?.map((d) => d.message) || [error.message];
+      const err = createHttpError.BadRequest("Validation error");
+      err.details = details;
+      next(err);
     }
   };
 }
