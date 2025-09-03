@@ -7,13 +7,9 @@ import { getEnvVar } from "../utils/getEnvVar.js";
 const JWT_SECRET = getEnvVar("JWT_SECRET");
 
 export const authenticate = async (req, res, next) => {
-  const authHeader = req.get("Authorization");
-  if (!authHeader)
-    return next(createHttpError(401, "Authorization header is missing"));
-
-  const [bearer, token] = authHeader.split(" ");
-  if (bearer !== "Bearer" || !token) {
-    return next(createHttpError(401, "Auth header must be of type Bearer"));
+  const token = req.cookies.accessToken;
+  if (!token) {
+    return next(createHttpError(401, "No access token"));
   }
 
   try {

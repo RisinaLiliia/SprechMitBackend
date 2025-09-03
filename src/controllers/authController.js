@@ -56,10 +56,10 @@ export const loginUserController = async (req, res, next) => {
 
 export const logoutUserController = async (req, res, next) => {
   try {
-    const { user } = req;
-    if (!user) throw createHttpError.Unauthorized("User not authenticated");
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) throw createHttpError.Unauthorized("No refresh token");
 
-    await logoutUser(user._id);
+    await logoutUser(req.user?._id);
 
     res.clearCookie("refreshToken");
     res.clearCookie("accessToken");
