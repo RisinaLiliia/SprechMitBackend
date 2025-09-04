@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
 import pino from "pino-http";
+import compression from "compression";
 
 import initMongoConnection from "./config/db.js";
 import authRouter from "./routers/authRouter.js";
@@ -17,15 +18,14 @@ export default async function setupServer() {
   const app = express();
 
   app.use(helmet());
+
   if (process.env.NODE_ENV !== "development") {
     app.use(pino());
   }
 
-  const allowedOrigins = [
-    "http://localhost:5173",
-    "https://sprech-mit-front.vercel.app",
-    "https://sprechmitbackend.onrender.com",
-  ];
+  app.use(compression());
+
+  const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
 
   app.use(
     cors({
@@ -59,6 +59,7 @@ export default async function setupServer() {
   await initMongoConnection();
 
   const PORT = process.env.PORT || 3000;
+
   return new Promise((resolve) => {
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
