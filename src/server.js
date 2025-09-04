@@ -50,6 +50,10 @@ export default async function setupServer() {
 
   app.use("/api-docs", swaggerDocs());
 
+  app.get("/", (_, res) => {
+    res.send("Welcome to the API!");
+  });
+
   app.use("/api/auth", authRouter);
   app.use("/api/users", userRouter);
 
