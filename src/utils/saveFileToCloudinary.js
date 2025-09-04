@@ -10,7 +10,6 @@ cloudinary.v2.config({
   api_secret: getEnvVar(CLOUDINARY.API_SECRET),
 });
 
-// Функция для загрузки файла в Cloudinary
 export const saveFileToCloudinary = async (file) => {
   const response = await cloudinary.v2.uploader.upload(file.path);
   await fs.unlink(file.path);

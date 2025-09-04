@@ -1,6 +1,7 @@
 import createHttpError from "http-errors";
 import bcrypt from "bcrypt";
 import { UsersCollection } from "../models/userModel.js";
+import { saveFileToCloudinary } from "../utils/saveFileToCloudinary.js";
 
 export const getCurrentUser = async (req, res, next) => {
   try {
@@ -23,8 +24,15 @@ export const updateCurrentUser = async (req, res, next) => {
 
     const allowedFields = ["name", "avatarUrl", "languageLevel", "progress"];
     const updates = {};
-    for (const f of allowedFields)
+
+    if (req.file) {
+      const cloudinaryUrl = await saveFileToCloudinary(req.file);
+      updates.avatarUrl = cloudinaryUrl;
+    }
+
+    for (const f of allowedFields) {
       if (req.body[f] !== undefined) updates[f] = req.body[f];
+    }
 
     const updatedUser = await UsersCollection.findByIdAndUpdate(
       req.user._id,
